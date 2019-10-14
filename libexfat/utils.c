@@ -38,11 +38,11 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 	stbuf->st_gid = ef->gid;
 	stbuf->st_size = node->size;
 	stbuf->st_blocks = ROUND_UP(node->size, CLUSTER_SIZE(*ef->sb)) / 512;
-	stbuf->st_mtime = node->mtime;
-	stbuf->st_atime = node->atime;
+	stbuf->st_mtim = node->mtime;
+	stbuf->st_atim = node->atime;
 	/* set ctime to mtime to ensure we don't break programs that rely on ctime
 	   (e.g. rsync) */
-	stbuf->st_ctime = node->mtime;
+	stbuf->st_ctim = node->mtime;
 }
 
 void exfat_get_name(const struct exfat_node* node,

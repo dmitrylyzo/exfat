@@ -53,7 +53,7 @@ static const time_t days_in_year[] =
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
+void exfat_exfat2unix(struct timespec *ts, le16_t date, le16_t time, uint8_t centisec,
 		uint8_t tzoffset)
 {
 	time_t unix_time = EPOCH_DIFF_SEC;
@@ -108,12 +108,14 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
 		/* timezone offset not present, assume our local timezone */
 		unix_time += exfat_timezone;
 
-	return unix_time;
+	ts->tv_sec = unix_time;
+	ts->tv_nsec = (long)(centisec % 100) * 10000000;
 }
 
-void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
+void exfat_unix2exfat(const struct timespec *ts, le16_t* date, le16_t* time,
 		uint8_t* centisec, uint8_t* tzoffset)
 {
+	time_t unix_time = ts->tv_sec;
 	time_t shift = EPOCH_DIFF_SEC + exfat_timezone;
 	uint16_t day, month, year;
 	uint16_t twosec, min, hour;
@@ -151,7 +153,7 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 	*date = cpu_to_le16(day | (month << 5) | (year << 9));
 	*time = cpu_to_le16(twosec | (min << 5) | (hour << 11));
 	if (centisec)
-		*centisec = (unix_time % 2) * 100;
+		*centisec = (unix_time % 2) * 100 + ts->tv_nsec / 10000000;
 
 	/* record our local timezone offset in exFAT (15 minute increment) format */
 	*tzoffset = (uint8_t)(-exfat_timezone / 60 / 15) | 0x80;

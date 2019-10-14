@@ -90,7 +90,8 @@ struct exfat_node
 	bool is_dirty : 1;
 	bool is_unlinked : 1;
 	uint64_t size;
-	time_t mtime, atime;
+	struct timespec mtime;
+	struct timespec atime;
 	le16_t name[EXFAT_NAME_MAX + 1];
 };
 
@@ -229,9 +230,9 @@ int exfat_soil_super_block(const struct exfat* ef);
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
+void exfat_exfat2unix(struct timespec *ts, le16_t date, le16_t time, uint8_t centisec,
 		uint8_t tzoffset);
-void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
+void exfat_unix2exfat(const struct timespec *ts, le16_t* date, le16_t* time,
 		uint8_t* centisec, uint8_t* tzoffset);
 void exfat_tzset(void);
 

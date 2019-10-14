@@ -324,8 +324,9 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -EIO;
 	}
 	/* exFAT does not have time attributes for the root directory */
-	ef->root->mtime = 0;
-	ef->root->atime = 0;
+	// zeroed already
+	//ef->root->mtime = 0;
+	//ef->root->atime = 0;
 	/* always keep at least 1 reference to the root node */
 	exfat_get_node(ef->root);
 

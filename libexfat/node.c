@@ -134,10 +134,10 @@ static void init_node_meta1(struct exfat_node* node,
 {
 	node->attrib = le16_to_cpu(meta1->attrib);
 	node->continuations = meta1->continuations;
-	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
+	exfat_exfat2unix(&node->mtime, meta1->mdate, meta1->mtime,
 			meta1->mtime_cs, meta1->mtime_tzo);
 	/* there is no centiseconds field for atime */
-	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime,
+	exfat_exfat2unix(&node->atime, meta1->adate, meta1->atime,
 			0, meta1->atime_tzo);
 }
 
@@ -651,11 +651,11 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 		return -EIO;
 
 	meta1->attrib = cpu_to_le16(node->attrib);
-	exfat_unix2exfat(node->mtime, &edate, &etime,
+	exfat_unix2exfat(&node->mtime, &edate, &etime,
 			&meta1->mtime_cs, &meta1->mtime_tzo);
 	meta1->mdate = edate;
 	meta1->mtime = etime;
-	exfat_unix2exfat(node->atime, &edate, &etime,
+	exfat_unix2exfat(&node->atime, &edate, &etime,
 			NULL, &meta1->atime_tzo);
 	meta1->adate = edate;
 	meta1->atime = etime;
@@ -900,13 +900,16 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	int i;
 	int rc;
 	le16_t edate, etime;
+	struct timespec ts;
+
+	clock_gettime(CLOCK_REALTIME, &ts);
 
 	memset(entries, 0, sizeof(struct exfat_entry[2]));
 
 	meta1->type = EXFAT_ENTRY_FILE;
 	meta1->continuations = 1 + name_entries;
 	meta1->attrib = cpu_to_le16(attrib);
-	exfat_unix2exfat(time(NULL), &edate, &etime,
+	exfat_unix2exfat(&ts, &edate, &etime,
 			&meta1->crtime_cs, &meta1->crtime_tzo);
 	meta1->adate = meta1->mdate = meta1->crdate = edate;
 	meta1->atime = meta1->mtime = meta1->crtime = etime;
@@ -1168,20 +1171,20 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 
 void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
 {
-	node->atime = tv[0].tv_sec;
-	node->mtime = tv[1].tv_sec;
+	node->atime = tv[0];
+	node->mtime = tv[1];
 	node->is_dirty = true;
 }
 
 void exfat_update_atime(struct exfat_node* node)
 {
-	node->atime = time(NULL);
+	clock_gettime(CLOCK_REALTIME, &node->atime);
 	node->is_dirty = true;
 }
 
 void exfat_update_mtime(struct exfat_node* node)
 {
-	node->mtime = time(NULL);
+	clock_gettime(CLOCK_REALTIME, &node->mtime);
 	node->is_dirty = true;
 }
 
